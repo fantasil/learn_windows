@@ -3,9 +3,14 @@
 #include<iostream>
 namespace windows_unit_8 {
 
+	/*
+	windows_unit_8:用户模式下的线程同步
+	*/
+
 
 
 	//这里初始化函数总是会抛出"此类没有存储类或说明符"错误,所以这里使用了包装类
+	//此错误需要把初始化函数放入一个函数体中.
 
 	class critical_section_wrapper {
 	public:
@@ -20,6 +25,7 @@ namespace windows_unit_8 {
 	};
 
 	//单独调用init函数会有一个"此类没有存储类或说明符的错误",所以这里使用了包装类.
+	//同上
 	class srwlock_wrapper {
 	public:
 		srwlock_wrapper() { InitializeSRWLock(&m_lock); }
@@ -32,10 +38,6 @@ namespace windows_unit_8 {
 	private:
 		SRWLOCK m_lock;
 	};
-
-	/*
-		windows_unit_8:用户模式下的线程同步
-	*/
 
 
 	/*
@@ -106,7 +108,7 @@ namespace windows_unit_8 {
 
 			//access the resource;
 			//...
-			InterlockedExchange((LONG*)&g_useable, false);
+			InterlockedExchange((PLONG)&g_useable, false);
 		}
 
 
@@ -224,24 +226,12 @@ namespace windows_unit_8 {
 			return 0;
 		}
 
-		DWORD WINAPI func3(PVOID pvParam)
-		{
-			sw.acquire_lock_shared();
-			for (int i = 0; i < 10; ++i)
-			{
-				std::cout << g_x << std::endl;
-				Sleep(2);
-			}
-			sw.release_lock_shared();
-			return 0;
-		}
 
 		void _test()
 		{
-			DWORD func1_id, func2_id, func3_id;
+			DWORD func1_id, func2_id;
 			CreateThread(nullptr, 0, func1, nullptr, 0, &func1_id);
 			CreateThread(nullptr, 0, func2, nullptr, 0, &func2_id);
-			CreateThread(nullptr, 0, func3, nullptr, 0, &func3_id);
 			Sleep(200);
 		}
 	}
@@ -256,6 +246,7 @@ namespace windows_unit_8 {
 			CONDITION_VARIABLE cv;
 			InitializeCriticalSection(&cs);
 			InitializeSRWLOCK(&lock);
+			InitializeConditionVariable(&cv);
 		释放锁资源,阻塞线程,等待条件变量:
 			SleepConditionVariableCS(&cv,&cs,200);
 			SleepConditionVariableSRW(&cv,&lcok,200,0);
