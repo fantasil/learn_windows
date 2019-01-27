@@ -1,0 +1,87 @@
+/*
+	1:dll文件的构建.
+		dll文件的构建过程和传统的生成类似,我们需要一个头文件(.h),用于声明变量函数结构体;需要一个源文件(.cpp),用于实现
+
+*/
+
+/*
+	part1: ObjInfoPrint.h
+	这里只是简单声明了一个打印函数,用于输出SYSTEM_INFO结构体的信息
+
+	tips:
+	1:如果ObjInfoPrintAPI已经定义了,那么说明这是处于实现的源文件中,编译构建时需要将相关符号导出(export)到.lib文件中;
+	  若没有,则不是在源文件中,需要将相关符号导入(import)到当前环境内,所以头文件中是dllimport,源文件中是dllexport
+	2:被ObjInfoPrintAPI修饰的变量函数都是需要导出的符号
+*/
+
+#include<Windows.h>;
+#include<iostream>;
+
+#ifdef ObjInfoPrintAPI
+	
+#else
+	
+#define ObjInfoPrintAPI extern "C" _declspec(dllimport)
+
+ObjInfoPrintAPI std::ostream& operator<<(std::ostream& os,const SYSTEM_INFO& si);
+
+/*
+	extern "C "declspec(dllimport) std::ostream& operator<<(std::ostream& os,const SYSTEM_INFO& si);
+*/
+
+
+/*
+	part2:ObjInfoPrint.cpp
+	这里是对声明函数的实现;
+
+	tips:
+		1:实现文件中的define位置在include之前,且define的是dllexprt
+		2:需要导出的符号在这里不需要重新修饰,即在头文件中修饰就足够了.
+*/
+
+#define ObjInfoPrintAPI extern "C" _declspec(dllexport)
+
+#include"ObjInfoPrint.h"
+
+std::ostream& operator<<(std::ostream& os,const SYSTEM_INFO& si)
+{
+	using namespace std;
+	const int column[2] = { 25,10 };
+	os << setw(column[0]) << "PageSize:" << setw(column[1]) << si.dwPageSize << "\n";
+	os << setw(column[0]) << "AllocationGranularity:" << setw(column[1]) << si.dwAllocationGranularity << "\n";
+	os << setw(column[0]) << "AppMinAddr:" << setw(column[1]) << si.lpMinimumApplicationAddress << "\n";
+	os << setw(column[0]) << "AppMaxAddr:" << setw(column[1]) << si.lpMaximumApplicationAddress << "\n";
+	return os;
+}
+
+
+/*
+	part3:生成dll文件和lib文件
+	visual studio有一个构建DLL的向导模板,使用就可以构建生成ObjInfoPrint.dll和ObjInfoPrint.lib
+	将头文件(.h),dll文件(.dll),库文件(.lib)打包发布
+*/
+
+
+/*
+	part4:在其他需要使用的地方该函数的时候
+	1:包含头文件
+	2:载入库文件
+	3:使用函数
+
+	这里是main.cpp
+*/
+
+#include"ObjInfoPrint.h"	//包含头文件
+
+#pragam comment(lib,"ObjInfoPrint.lib")	//载入库函数
+
+int main()
+{
+	using namespace std;
+	SYSTEM_INFO si;
+	GetSystemInfo(&si);
+	cout<<si<<endl;
+	system("pause");			//使用函数
+	return 0;
+}
+
